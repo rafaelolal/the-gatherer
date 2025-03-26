@@ -1,0 +1,504 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+    <head>
+        <!-- Required meta tags -->
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+        <!-- Title -->
+        <title>The Gatherer</title>
+
+        <!-- Bootstrap CSS -->
+        <link
+            href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+            rel="stylesheet"
+            integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH"
+            crossorigin="anonymous"
+        />
+
+        <!-- Custom CSS -->
+        <link rel="stylesheet" href="{% static 'css/style.css' %}" />
+
+        <style>
+            .card-item {
+                border-left: 4px solid #6c757d;
+            }
+            .ruling-item {
+                border-left: 2px solid #0d6efd;
+                padding-left: 10px;
+            }
+            .ability-checkbox:checked + label {
+                text-decoration: line-through;
+                color: #6c757d;
+            }
+        </style>
+
+        {% block extra_css %}{% endblock %}
+    </head>
+    <body>
+        <div class="container mt-4">
+            <h1 class="mb-4">MTG Card Tracker</h1>
+
+            <!-- Create Section Form -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5>Create New Section</h5>
+                </div>
+                <div class="card-body">
+                    <form id="createSectionForm" class="row g-3">
+                        <div class="col-md-8">
+                            <input
+                                type="text"
+                                class="form-control"
+                                id="sectionName"
+                                placeholder="Section Name"
+                                required
+                            />
+                        </div>
+                        <div class="col-md-4">
+                            <button type="submit" class="btn btn-primary">
+                                Create Section
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Add Card Form -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5>Add Card to Section</h5>
+                </div>
+                <div class="card-body">
+                    <form id="addCardForm" class="row g-3">
+                        <div class="col-md-6">
+                            <label for="cardInput" class="form-label"
+                                >Card Name</label
+                            >
+                            <input
+                                class="form-control"
+                                list="cardOptions"
+                                id="cardInput"
+                                placeholder="Type to search..."
+                                autocomplete="off"
+                            />
+                            <datalist id="cardOptions">
+                                {% for card_name, card_uuid in card_names %}
+                                <option
+                                    value="{{ card_name }}"
+                                    data-uuid="{{ card_uuid }}"
+                                >
+                                    {% endfor %}
+                                </option>
+                            </datalist>
+                            <input type="hidden" id="selectedCardUUID" />
+                        </div>
+                        <div class="col-md-4">
+                            <label for="sectionSelect" class="form-label"
+                                >Select Section</label
+                            >
+                            <select
+                                class="form-select"
+                                id="sectionSelect"
+                                required
+                            >
+                                <option value="" disabled selected>
+                                    Choose section
+                                </option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="d-block">&nbsp;</label>
+                            <button type="submit" class="btn btn-success">
+                                Add Card
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Pass Turn Button -->
+            <div class="d-grid gap-2 col-md-4 mx-auto mb-4">
+                <button id="passTurnBtn" class="btn btn-warning btn-lg">
+                    Pass Turn
+                </button>
+            </div>
+
+            <!-- Sections Accordion -->
+            <div class="accordion" id="sectionsAccordion">
+                <!-- Sections will be added here dynamically -->
+            </div>
+        </div>
+
+        <!-- Card Templates (Hidden) -->
+        <template id="sectionTemplate">
+            <div class="accordion-item">
+                <h2 class="accordion-header">
+                    <button
+                        class="accordion-button"
+                        type="button"
+                        data-bs-toggle="collapse"
+                        data-bs-target="#section_SECTION_ID"
+                        aria-expanded="true"
+                        aria-controls="section_SECTION_ID"
+                    >
+                        SECTION_NAME
+                    </button>
+                </h2>
+                <div
+                    id="section_SECTION_ID"
+                    class="accordion-collapse collapse show"
+                    data-bs-parent="#sectionsAccordion"
+                >
+                    <div class="accordion-body">
+                        <div class="cards-container">
+                            <!-- Cards will be added here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </template>
+
+        <template id="cardTemplate">
+            <div class="card mb-3 card-item" data-card-id="CARD_UUID">
+                <div
+                    class="card-header d-flex justify-content-between align-items-center"
+                >
+                    <h5 class="mb-0">CARD_NAME</h5>
+                </div>
+                <div class="card-body">
+                    <div class="abilities-container mb-3">
+                        <!-- Abilities will be added here -->
+                    </div>
+                    <div class="rulings-container">
+                        <!-- Rulings will be added here if they exist -->
+                    </div>
+                </div>
+            </div>
+        </template>
+
+        <template id="abilityTemplate">
+            <div class="form-check mb-2">
+                <input
+                    class="form-check-input ability-checkbox"
+                    type="checkbox"
+                    id="ability_ABILITY_ID"
+                />
+                <label class="form-check-label" for="ability_ABILITY_ID">
+                    ABILITY_TEXT
+                </label>
+            </div>
+        </template>
+
+        <template id="rulingsTemplate">
+            <div class="mt-3">
+                <button
+                    class="btn btn-primary"
+                    type="button"
+                    data-bs-toggle="collapse"
+                    data-bs-target="#rulings_CARD_UUID"
+                    aria-expanded="false"
+                    aria-controls="rulings_CARD_UUID"
+                >
+                    Rulings
+                </button>
+                <div class="collapse mt-2" id="rulings_CARD_UUID">
+                    <div class="card card-body rulings-content">
+                        <!-- Rulings will be added here -->
+                    </div>
+                </div>
+            </div>
+        </template>
+
+        <template id="rulingItemTemplate">
+            <div class="ruling-item mb-2">
+                <small class="text-muted">RULING_DATE</small>
+                <p class="mb-0">RULING_TEXT</p>
+            </div>
+        </template>
+
+        <script>
+            document.addEventListener("DOMContentLoaded", function () {
+                // Track all sections
+                const sections = [];
+                let sectionId = 0;
+
+                // Create section form handler
+                document
+                    .getElementById("createSectionForm")
+                    .addEventListener("submit", function (e) {
+                        e.preventDefault();
+                        const sectionNameInput =
+                            document.getElementById("sectionName");
+                        const sectionName = sectionNameInput.value.trim();
+
+                        if (sectionName) {
+                            createSection(sectionName);
+                            sectionNameInput.value = "";
+                        }
+                    });
+
+                // Add card form handler
+                document
+                    .getElementById("addCardForm")
+                    .addEventListener("submit", function (e) {
+                        e.preventDefault();
+                        const cardInput = document.getElementById("cardInput");
+                        const selectedCardUUID =
+                            document.getElementById("selectedCardUUID").value;
+                        console.log({ cardInput, selectedCardUUID });
+                        const sectionSelect =
+                            document.getElementById("sectionSelect");
+
+                        if (selectedCardUUID && sectionSelect.value) {
+                            fetchAndAddCard(
+                                selectedCardUUID,
+                                sectionSelect.value,
+                            );
+                            cardInput.value = "";
+                            document.getElementById("selectedCardUUID").value =
+                                "";
+                        }
+                    });
+
+                // Card input handler to set hidden UUID
+                document
+                    .getElementById("cardInput")
+                    .addEventListener("input", function () {
+                        const cardInput = this;
+                        const uuid = findCardUUID(cardInput.value);
+                        document.getElementById("selectedCardUUID").value =
+                            uuid || "";
+                    });
+
+                // Pass turn button handler
+                document
+                    .getElementById("passTurnBtn")
+                    .addEventListener("click", function () {
+                        document
+                            .querySelectorAll(".ability-checkbox")
+                            .forEach((checkbox) => {
+                                checkbox.checked = false;
+                            });
+                    });
+
+                // Helper function to create a new section
+                function createSection(name) {
+                    const newId = sectionId++;
+                    sections.push({
+                        id: newId,
+                        name: name,
+                        cards: [],
+                    });
+
+                    // Create the accordion item from template
+                    const template = document.getElementById("sectionTemplate");
+                    const clone = document.importNode(template.content, true);
+
+                    // Replace placeholders
+                    const sectionTemplate =
+                        clone.querySelector(".accordion-item") ||
+                        clone.firstElementChild;
+                    if (sectionTemplate) {
+                        const html = sectionTemplate.outerHTML
+                            .replace(/SECTION_ID/g, newId)
+                            .replace(/SECTION_NAME/g, name);
+
+                        // Create a temporary container to hold the modified HTML
+                        const tempContainer = document.createElement("div");
+                        tempContainer.innerHTML = html;
+
+                        // Clear the original content and append the new content
+                        while (clone.firstChild) {
+                            clone.removeChild(clone.firstChild);
+                        }
+                        clone.appendChild(tempContainer.firstElementChild);
+                    }
+
+                    // Add to DOM
+                    document
+                        .getElementById("sectionsAccordion")
+                        .appendChild(clone);
+
+                    // Update the section dropdown
+                    const sectionSelect =
+                        document.getElementById("sectionSelect");
+                    const option = document.createElement("option");
+                    option.value = newId;
+                    option.textContent = name;
+                    sectionSelect.appendChild(option);
+                }
+
+                // Helper function to find UUID from card name
+                function findCardUUID(cardName) {
+                    const options = document.querySelectorAll(
+                        "#cardOptions option",
+                    );
+                    for (const option of options) {
+                        if (option.value === cardName) {
+                            return option.getAttribute("data-uuid");
+                        }
+                    }
+                    return null;
+                }
+
+                // Fetch card data and add it to a section
+                function fetchAndAddCard(uuid, sectionId) {
+                    console.log({ uuid });
+                    fetch(`/get_card?uuid=${uuid}`)
+                        .then((response) => response.json())
+                        .then((cardData) => {
+                            console.log({ fetchandadd: cardData });
+                            addCardToSection(cardData, sectionId);
+                        })
+                        .catch((error) =>
+                            console.error("Error fetching card:", error),
+                        );
+                }
+
+                // Add a card to a section
+                function addCardToSection(cardData, sectionId) {
+                    console.log({ cardData });
+                    // Find the section in the DOM
+                    const sectionContainer = document.querySelector(
+                        `#section_${sectionId} .cards-container`,
+                    );
+                    if (!sectionContainer) return;
+
+                    // Create card from template
+                    const template = document.getElementById("cardTemplate");
+                    const clone = document.importNode(template.content, true);
+
+                    // Replace card placeholders
+                    const cardElement =
+                        clone.querySelector(".card-item") ||
+                        clone.firstElementChild;
+                    if (cardElement) {
+                        // Use the element's outerHTML instead of clone.innerHTML
+                        let html = cardElement.outerHTML
+                            .replace(/CARD_UUID/g, cardData.uuid)
+                            .replace(/CARD_NAME/g, cardData.name);
+
+                        // Use a temporary container to parse the HTML string back to a DOM element
+                        const tempContainer = document.createElement("div");
+                        tempContainer.innerHTML = html;
+
+                        // Replace the original element with the updated one
+                        while (clone.firstChild) {
+                            clone.removeChild(clone.firstChild);
+                        }
+                        clone.appendChild(tempContainer.firstElementChild);
+                    }
+
+                    // Add abilities
+                    const abilitiesContainer = clone.querySelector(
+                        ".abilities-container",
+                    );
+                    const abilityTemplate =
+                        document.getElementById("abilityTemplate");
+
+                    if (cardData.text && cardData.text.length > 0) {
+                        cardData.text.forEach((ability, index) => {
+                            const abilityClone = document.importNode(
+                                abilityTemplate.content,
+                                true,
+                            );
+
+                            // Fix for innerHTML issue by manipulating DOM elements directly
+                            const abilityCheckbox =
+                                abilityClone.querySelector(".ability-checkbox");
+                            const abilityLabel =
+                                abilityClone.querySelector(".form-check-label");
+
+                            if (abilityCheckbox) {
+                                abilityCheckbox.id = `ability_${cardData.uuid}_${index}`;
+                            }
+
+                            if (abilityLabel) {
+                                abilityLabel.setAttribute(
+                                    "for",
+                                    `ability_${cardData.uuid}_${index}`,
+                                );
+                                abilityLabel.textContent = ability;
+                            }
+
+                            abilitiesContainer.appendChild(abilityClone);
+                        });
+                    } else {
+                        // If no abilities, add a note
+                        abilitiesContainer.innerHTML =
+                            '<p class="text-muted">No abilities</p>';
+                    }
+
+                    // Add rulings if they exist
+                    if (cardData.rulings && cardData.rulings.length > 0) {
+                        const rulingsContainer =
+                            clone.querySelector(".rulings-container");
+                        const rulingsTemplate =
+                            document.getElementById("rulingsTemplate");
+                        const rulingsClone = document.importNode(
+                            rulingsTemplate.content,
+                            true,
+                        );
+
+                        // Setup the rulings collapse element
+                        const rulingsButton =
+                            rulingsClone.querySelector("button");
+                        if (rulingsButton) {
+                            rulingsButton.setAttribute(
+                                "data-bs-target",
+                                `#rulings_${cardData.uuid}`,
+                            );
+                            rulingsButton.setAttribute(
+                                "aria-controls",
+                                `rulings_${cardData.uuid}`,
+                            );
+                        }
+
+                        const rulingsCollapse =
+                            rulingsClone.querySelector(".collapse");
+                        if (rulingsCollapse) {
+                            rulingsCollapse.id = `rulings_${cardData.uuid}`;
+                        }
+
+                        rulingsContainer.appendChild(rulingsClone);
+
+                        // Add each ruling as a separate paragraph
+                        const rulingsContent =
+                            rulingsContainer.querySelector(".rulings-content");
+
+                        // Treat cardData.rulings as an array
+                        cardData.rulings.forEach((ruling) => {
+                            const paragraph = document.createElement("p");
+                            paragraph.className = "mb-2";
+                            paragraph.textContent = ruling;
+                            rulingsContent.appendChild(paragraph);
+                        });
+                    }
+
+                    // Add to DOM
+                    sectionContainer.appendChild(clone);
+
+                    // Add to sections data structure
+                    const sectionIndex = sections.findIndex(
+                        (s) => s.id == sectionId,
+                    );
+                    if (sectionIndex !== -1) {
+                        sections[sectionIndex].cards.push(cardData);
+                    }
+                }
+            });
+        </script>
+
+        <!-- Bootstrap Bundle with Popper -->
+        <script
+            src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+            integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
+            crossorigin="anonymous"
+        ></script>
+
+        <!-- Custom JavaScript -->
+        <script src="{% static 'js/script.js' %}"></script>
+    </body>
+</html>
