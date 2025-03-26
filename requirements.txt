@@ -1,0 +1,17 @@
+asgiref==3.8.1
+certifi==2025.1.31
+charset-normalizer==3.4.1
+django==5.1.7
+django-stubs==5.1.3
+django-stubs-ext==5.1.3
+djangorestframework==3.15.2
+djangorestframework-stubs==3.15.3
+idna==3.10
+python-dotenv==1.1.0
+requests==2.32.3
+sqlparse==0.5.3
+tomli==2.2.1
+types-pyyaml==6.0.12.20241230
+types-requests==2.32.0.20250306
+typing-extensions==4.12.2
+urllib3==2.3.0
