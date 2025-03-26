@@ -166,6 +166,9 @@
                     class="card-header d-flex justify-content-between align-items-center"
                 >
                     <h5 class="mb-0">CARD_NAME</h5>
+                    <button class="btn btn-sm btn-danger delete-card-btn">
+                        Delete
+                    </button>
                 </div>
                 <div class="card-body">
                     <div class="abilities-container mb-3">
@@ -282,6 +285,46 @@
                                 checkbox.checked = false;
                             });
                     });
+
+                // Event delegation for delete card buttons
+                document.addEventListener("click", function (e) {
+                    if (
+                        e.target &&
+                        e.target.classList.contains("delete-card-btn")
+                    ) {
+                        const cardElement = e.target.closest(".card-item");
+                        if (cardElement) {
+                            const cardId =
+                                cardElement.getAttribute("data-card-id");
+                            const sectionElement =
+                                cardElement.closest(".accordion-item");
+
+                            // Remove from DOM
+                            cardElement.remove();
+
+                            // Remove from data structure if section is found
+                            if (sectionElement) {
+                                const sectionId = sectionElement
+                                    .querySelector(".accordion-collapse")
+                                    .id.replace("section_", "");
+                                const sectionIndex = sections.findIndex(
+                                    (s) => s.id == sectionId,
+                                );
+                                if (sectionIndex !== -1) {
+                                    const cardIndex = sections[
+                                        sectionIndex
+                                    ].cards.findIndex((c) => c.uuid === cardId);
+                                    if (cardIndex !== -1) {
+                                        sections[sectionIndex].cards.splice(
+                                            cardIndex,
+                                            1,
+                                        );
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
 
                 // Helper function to create a new section
                 function createSection(name) {
