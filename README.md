@@ -1,5 +1,7 @@
 # The Gatherer
 
+<img width="1146" alt="image" src="https://github.com/user-attachments/assets/b4f865ce-3b26-46d2-96b7-e6250d2f6ce9" />
+
 This is a minimalistic tracker for card abilities in "Magic: The Gathering". This project helps reduce the cognitive load for noobie players who struggle to keep track of all the abilities in play.
 
 ## Features
